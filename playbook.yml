@@ -44,6 +44,8 @@
         block: |
           Alias /wiki/skins /usr/share/mediawiki/skins
           Alias /wiki /var/www/wiki
+          RewriteEngine On
+          RewriteRule ^/*$ /wiki [R]
       notify:
         - restart httpd
     - mysql_db:
