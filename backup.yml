@@ -1,0 +1,49 @@
+---
+
+# Copyright 2017 David Stanek <dstanek@dstanek.com>
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+- name: backup MediaWiki
+  hosts: all
+  gather_facts: true
+  remote_user: root
+  vars_files:
+    - vars.yml
+    - data.yml
+  tasks:
+    - name: create an SQL dump file
+      mysql_db:
+        name: wiki
+        login_user: wiki
+        login_password: "{{ wiki_password }}"
+        state: dump
+        target: /tmp/shoreline-wiki.sql
+    - name: compress the SQL dump file
+      command: gzip /tmp/shoreline-wiki.sql
+    - name: ensure the shoreline backups container exists
+      os_object:
+        auth: "{{ rackspace_auth }}"
+        container: shoreline_backups
+        state: present
+    - name: store the compressed file in the backups container
+      os_object:
+        auth: "{{ auth }}"
+        container: shoreline_backups
+        name: "wiki-{{ ansible_date_time.date}}.sql.gz"
+        filename: /tmp/shoreline-wiki.sql.gz
+        state: present
+    - name: remove the compressed file
+      file:
+        name: /tmp/shoreline-wiki.sql.gz
+        state: absent
